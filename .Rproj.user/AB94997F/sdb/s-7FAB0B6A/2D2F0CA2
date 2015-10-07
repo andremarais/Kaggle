@@ -1,0 +1,18 @@
+{
+    "contents" : "library(ggplot2)\nlibrary(randomForest)\n\nstores <- read.csv('store.csv')\ntrain.data <- read.csv('train.csv')\n\nset.seed(115)\nsample.stores <- sample(train.data$Store,25)\ntrain.ss <- train.data[which(train.data$Store %in% sample.stores),]\n\ntrain.ss$Date <- as.Date(train.ss$Date, format = '%Y-%m-%d')\n\nggplot(train.ss) + geom_line(aes(x = Date, y = Sales)) + facet_grid(Store ~.)\n\nggplot(train.ss[train.ss$Store == 190,])+ geom_line(aes(x = Date, y = Sales))\n\n# exploring store 190\n\nstore190 <- merge(train.ss[train.ss$Store == 190,], stores[stores$Store == 190,])\n\n# trim off last n days to create time series\nno.of.trading.days <- length(unique(store190$DayOfWeek[store190$Open == 1]))\nstore190 <- store190[1:(nrow(store190) - nrow(store190) %% no.of.trading.days),][store190$Sales != 0,]\n\nts190 <- ts(store190$Sales, frequency = no.of.trading.days)\nplot(decompose(ts190))\nplot(decompose(ts190)$x - decompose(ts190)$random)\nlines(decompose(ts190)$x, col = 'red')\n\nstore190$PromoMonth <- sapply(store190$Date, function(x) if (grepl(format(x, '%b'), stores$PromoInterval[stores$Store == 190])) 1 else 0)\n\ngrep(format(store190$Date, '%b')[1], as.character(stores$PromoInterval[stores$Store == 190]))\n\n\n\nstr(store190)\n\nrf190 <- randomForest(data = store190, Sales ~ DayOfWeek + Customers + Open + Promo + StateHoliday + SchoolHoliday + PromoMonth)\n\npred190 <- predict(rf.190,store190)\n\n\nggplot(cbind(store190, pred190)) + geom_line(aes(x = Date, y = Sales), col = 'dodgerblue3') + geom_line(aes(x = Date, y = pred190), col = 'tomato3') \nhist(store190$Sales - pred190)\nshapiro.test(store190$Sales - pred190)\n#fok\n",
+    "created" : 1444237028119.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3033359288",
+    "id" : "2D2F0CA2",
+    "lastKnownWriteTime" : 1444243497,
+    "path" : "C:/Github/Kaggle/Afrikaans Mr Bean/Rossmann/exploration.R",
+    "project_path" : "Afrikaans Mr Bean/Rossmann/exploration.R",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "type" : "r_source"
+}

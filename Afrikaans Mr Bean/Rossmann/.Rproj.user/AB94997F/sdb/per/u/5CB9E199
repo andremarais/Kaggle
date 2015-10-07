@@ -1,0 +1,18 @@
+{
+    "contents" : "store.data <- read.csc",
+    "created" : 1444236956099.000,
+    "dirty" : true,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "86047403",
+    "id" : "5CB9E199",
+    "lastKnownWriteTime" : 7011605692497750387,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "type" : "r_source"
+}

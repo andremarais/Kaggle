@@ -1,0 +1,25 @@
+{
+    "contents" : "",
+    "created" : 1444238253286.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "540D2171",
+    "lastKnownWriteTime" : 7011605692497750387,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "khrixn74ho",
+        "caption" : "train.ss[train.ss$Store == 190, ]",
+        "contentUrl" : "grid_resource/gridviewer.html?env=_rs_no_env&obj=&cache_key=khrixn74ho",
+        "displayedObservations" : 758,
+        "environment" : "_rs_no_env",
+        "object" : "",
+        "totalObservations" : 758,
+        "variables" : 9
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "type" : "r_dataframe"
+}

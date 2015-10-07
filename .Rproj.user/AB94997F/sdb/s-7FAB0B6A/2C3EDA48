@@ -1,0 +1,25 @@
+{
+    "contents" : "",
+    "created" : 1444238340747.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "2C3EDA48",
+    "lastKnownWriteTime" : 21392300099829876,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "1mpf4fspvg",
+        "caption" : "stores",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=stores&cache_key=1mpf4fspvg",
+        "displayedObservations" : 1115,
+        "environment" : "",
+        "object" : "stores",
+        "totalObservations" : 1115,
+        "variables" : 10
+    },
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "type" : "r_dataframe"
+}
