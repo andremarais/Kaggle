@@ -27,6 +27,9 @@
 
 library(data.table)  
 library(h2o)
+library(forecast)
+
+
 
 cat("reading the train and test data (with data.table) \n")
 train <- fread("../train.csv",stringsAsFactors = T)
@@ -60,6 +63,76 @@ test[,Store:=as.factor(as.numeric(Store))]
 ##     if the data spans an order of magnitude, consider a log transform
 train[,logSales:=log1p(Sales)]
 
+#View(train[sample(nrow(train),1000),])
+
+#View(train[which(train$Store==7),])
+
+Store.Forecast <- train[1,]
+Store.Forecast$ArimaForecast<-0
+Store.Forecast<- Store.Forecast[which(is.na(Store.Forecast$text)), ]
+
+for(z in unique(train$Store)){
+  
+  print(z)
+  StoreCheck <- train[which(train$Store==z&train$DayOfWeek<7),]
+  StoreCheck <- StoreCheck[order(StoreCheck$Date),]
+  #StoreCheck$NewSales <- StoreCheck$Sales
+  StoreCheck$Sales[which(StoreCheck$Sales==0)] <- mean(StoreCheck$Sales)
+  StoreCheck$logSales<-log1p(StoreCheck$Sales)
+  
+
+  sc_ts <- ts(StoreCheck$logSales[1:(nrow(StoreCheck)-42)],frequency=6)
+  fit <- auto.arima(sc_ts)
+  #plot(forecast.Arima(fit,h=42,level=c(0,1)))
+  f <-forecast.Arima(fit,h=42,level=c(0,1))
+  New.Forecast <-StoreCheck[(nrow(StoreCheck)-41):nrow(StoreCheck),]
+  New.Forecast$ArimaForecast <- as.numeric(f$mean)
+  
+  Store.Forecast <-rbind(Store.Forecast,New.Forecast)
+} 
+
+#Populate test set
+
+Store.Test.Forecast <- test[1,]
+Store.Test.Forecast$ArimaForecast<-0
+Store.Test.Forecast<- Store.Test.Forecast[which(is.na(Store.Test.Forecast$text)), ]
+
+for(z in unique(test$Store)){
+  z<-1
+  print(z)
+  StoreCheck <- train[which(train$Store==z&train$DayOfWeek<7),]
+  StoreCheck <- StoreCheck[order(StoreCheck$Date),]
+  #StoreCheck$NewSales <- StoreCheck$Sales
+  StoreCheck$Sales[which(StoreCheck$Sales==0)] <- mean(StoreCheck$Sales)
+  StoreCheck$logSales<-log1p(StoreCheck$Sales)
+  
+  sc_ts <- ts(StoreCheck$logSales[1:(nrow(StoreCheck)-0)],frequency=6)
+  fit <- auto.arima(sc_ts)
+  #plot(forecast.Arima(fit,h=42,level=c(0,1)))
+  f <-forecast.Arima(fit,h=42,level=c(0,1))
+  
+  Test.Forecast <- as.data.frame(test[which(test$Store==z&test$DayOfWeek<7),])
+  Test.Forecast <- Test.Forecast[, !names(Test.Forecast) %in% c('Sales','logSales')]
+
+  
+  Test.Forecast$ArimaForecast <- as.numeric(f$mean)
+  Test.Forecast$Id <-0
+  Store.Test.Forecast <-rbind(Store.Test.Forecast,Test.Forecast)
+} 
+
+#write.csv(Store.Forecast,file="Store.Forecast.csv")
+#Store.Forecast <- read.csv("Store.Forecast.csv")
+#Store.Forecast$Date<-as.Date(Store.Forecast$Date)
+
+Store.Forecast <- Store.Forecast[,c('Store','Date','ArimaForecast')]
+Store.Test.Forecast <- Store.Test.Forecast[,c('Store','Date','ArimaForecast')]
+
+train <- merge(train,Store.Forecast,by=c('Store','Date'),all.x=TRUE)
+train$ArimaForecast[which(is.na(train$ArimaForecast))] <- -99
+
+test <- merge(test,Store.Test.Forecast,by=c('Store','Date'),all.x=TRUE)
+test$ArimaForecast[which(is.na(train$ArimaForecast))] <- -99
+
 ## Use H2O's random forest
 ## Start cluster with all available threads
 h2o.init(nthreads=-1,max_mem_size='6G')
@@ -89,4 +162,26 @@ submission <- data.frame(Id=test$Id, Sales=pred)
 
 cat("saving the submission file\n")
 write.csv(submission, "h2o_rf.csv",row.names=F)
+
+#  - - JUNKYARD
+
+
+
+StoreCheck <- train[which(train$Store==857&train$DayOfWeek<7),]
+StoreCheck <- StoreCheck[order(StoreCheck$Date),]
+
+mean(StoreCheck$Sales)
+
+View(StoreCheck[which(StoreCheck$Sales==0),])
+
+StoreCheck$NewSales <- StoreCheck$Sales
+StoreCheck$NewSales[which(StoreCheck$Sales==0)] <- mean(StoreCheck$Sales)
+
+hist(StoreCheck$Sales)
+
+StartYear <- as.numeric(format(as.Date(StoreCheck$Date[1]), "%Y")) 
+EndYear <- as.numeric(format(tail(as.Date(StoreCheck$Date),1), "%Y")) 
+
+StartWeek <- as.numeric(format(as.Date(StoreCheck$Date[1]), "%W")) 
+EndWeek <- as.numeric(format(tail(as.Date(StoreCheck$Date),1), "%W")) 
 
