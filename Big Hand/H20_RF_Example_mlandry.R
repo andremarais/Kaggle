@@ -29,6 +29,8 @@ library(data.table)
 library(h2o)
 library(forecast)
 
+source("../common/loadclean.R")
+
 
 
 cat("reading the train and test data (with data.table) \n")

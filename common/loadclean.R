@@ -8,12 +8,12 @@
 # faster in some way.
 
 # load utility functions
-source("common/utilfuncs.R")
+source("../common/utilfuncs.R")
 
 # load data frames from training, test and store set
-train <- read.csv("train.csv", stringsAsFactors = FALSE)
-test <- read.csv("test.csv", stringsAsFactors = FALSE)
-store <- read.csv("store.csv", stringsAsFactors = FALSE)
+train <- read.csv("../train.csv", stringsAsFactors = FALSE)
+test <- read.csv("../test.csv", stringsAsFactors = FALSE)
+store <- read.csv("../store.csv", stringsAsFactors = FALSE)
 
 # clean store before merge (for efficiency, don't want to propagate missing vals)
 # just convert missing values (NA) to zeros for now
