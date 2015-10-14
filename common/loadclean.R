@@ -20,8 +20,8 @@ store <- read.csv("store.csv", stringsAsFactors = FALSE)
 store[is.na(store)] <- 0
 
 # merge sets with store data, keeping order of entries
-train <- merge.with.order(train, store, keep_order = 1)
-test <- merge.with.order(test, store, keep_order = 1)
+train <- merge(train, store)
+test <- merge(test, store)
 
 # in test: store 622 has 11 NAs in Open, none fall on sundays (store closed on sundays)
 # convert NA values to 1 (store is open)
@@ -35,11 +35,11 @@ train <- train[which(train$Open == '1'),]
 train <- train[which(train$Sales != '0'),]
 
 # separate elements of the date in train and test set
-train$year <- as.integer(format(as.Date(train$Date), "%y"))
+train$year <- as.integer(format(as.Date(train$Date), "%Y"))
 train$month <- as.integer(format(as.Date(train$Date), "%m"))
 train$day <- as.integer(format(as.Date(train$Date), "%d"))
 
-test$year <- as.integer(format(as.Date(test$Date), "%y"))
+test$year <- as.integer(format(as.Date(test$Date), "%Y"))
 test$month <- as.integer(format(as.Date(test$Date), "%m"))
 test$day <- as.integer(format(as.Date(test$Date), "%d"))
 
