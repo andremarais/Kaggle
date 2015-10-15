@@ -46,6 +46,18 @@ param <- list(objective = "reg:linear",
               # lambda = 1
 )
 
+# cross validation
+#cv.nfold = 5
+
+#cv.bst <- xgb.cv(params = param,
+#                 data = dtrain,
+#                 nfold = cv.nfold,
+#                 nrounds = 10,
+#                 early.stop.round = 100,
+#                 feval = RMPSE,
+#                 maximize = FALSE
+#)
+
 bst <- xgb.train(params = param, 
                  data = dtrain,
                  nrounds = 5000,       # 3000 (.10469) # 2000
