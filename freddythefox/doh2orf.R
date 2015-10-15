@@ -10,7 +10,8 @@ set.seed(2501)          # the ghost in the shell
 predictors <- names(train)[c(1, 2, 6, 7, 9:21)]
 
 # specify numeric factors for conversion step
-num.factors <- c("Store", "DayOfWeek", "Open", "Promo", "SchoolHoliday", "Promo2", "year", "month")
+#num.factors <- c("Store", "DayOfWeek", "Open", "Promo", "SchoolHoliday", "Promo2", "year", "month")
+num.factors <- c("Store")
 
 # convert character predictors (all of them are categorical) to factors
 for (p in predictors) {
@@ -63,4 +64,4 @@ summary(pred.h2o)
 # generate submission file
 subm.h2o <- data.frame(Id = test$Id, Sales = pred.h2o)
 names(subm.h2o) <- c("Id", "Sales")
-write.csv(subm.h2o, file = "output/baseh2o_rf151015_2152.csv", row.names = FALSE)
+write.csv(subm.h2o, file = "output/baseh2o_rf151016_0144.csv", row.names = FALSE)

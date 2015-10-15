@@ -19,7 +19,7 @@ store <- read.csv("store.csv", stringsAsFactors = FALSE)
 # just convert missing values (NA) to zeros for now
 store[is.na(store)] <- 0
 
-# merge sets with store data, keeping order of entries
+# merge sets with store data
 train <- merge(train, store)
 test <- merge(test, store)
 
