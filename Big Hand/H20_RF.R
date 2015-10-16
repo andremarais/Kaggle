@@ -95,8 +95,7 @@ features<-colnames(train)[!(colnames(train) %in% c("Id","Date","Sales","logSales
 rfHex <- h2o.randomForest(x=features,
                           y="logSales", 
                           ntrees = 200,
-                          max_depth = 50,
-                          nbins = 500,
+                          max_depth = 40,
                           #nbins_top_level=5000,
                           binomial_double_trees = TRUE,
                           nbins_cats = 1115, ## allow it to fit store ID
