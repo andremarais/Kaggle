@@ -80,6 +80,7 @@ for(z in unique(train$Store)){
     Store.Forecast <-rbind(Store.Forecast,New.Forecast)
     n <- n-42
 } 
+}
 
 #Populate test set
 
