@@ -68,16 +68,17 @@ for(z in unique(train$Store)){
   #StoreCheck$NewSales <- StoreCheck$Sales
   StoreCheck$Sales[which(StoreCheck$Sales==0)] <- mean(StoreCheck$Sales)
   StoreCheck$logSales<-log1p(StoreCheck$Sales)
-  
-
-  sc_ts <- ts(StoreCheck$logSales[1:(nrow(StoreCheck)-42)],frequency=6)
-  fit <- nnetar(sc_ts)
-  #plot(forecast.nnetar(fit,h=42,level=c(0,1)))
-  f <- forecast.nnetar(fit,h=42,level=c(0,1))
-  New.Forecast <-StoreCheck[(nrow(StoreCheck)-41):nrow(StoreCheck),]
-  New.Forecast$ArimaForecast <- as.numeric(f$mean)
-  
-  Store.Forecast <-rbind(Store.Forecast,New.Forecast)
+  n<-nrow(StoreCheck)
+  while(n>58){
+    sc_ts <- ts(StoreCheck$logSales[1:(n-42)],frequency=6)
+    fit <- nnetar(sc_ts)
+    #plot(forecast.nnetar(fit,h=42,level=c(0,1)))
+    f <- forecast.nnetar(fit,h=42,level=c(0,1))
+    New.Forecast <-StoreCheck[(n-41):n,]
+    New.Forecast$ArimaForecast <- as.numeric(f$mean)
+    
+    Store.Forecast <-rbind(Store.Forecast,New.Forecast)
+    n <- n-42
 } 
 
 #Populate test set
