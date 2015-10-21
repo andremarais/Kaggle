@@ -29,10 +29,11 @@ library(data.table)
 library(h2o)
 library(forecast)
 
-source("../common/loadclean.R")
+#source("../common/loadclean.R")
 
 train <- as.data.table(train)
 test <- as.data.table(test)
+store <- as.data.table(store)
 
 ## more care should be taken to ensure the dates of test can be projected from train
 ## decision trees do not project well, so you will want to have some strategy here, if using the dates
@@ -40,13 +41,40 @@ train[,Date:=as.Date(Date)]
 test[,Date:=as.Date(Date)]
 
 # seperating out the elements of the date column for the train set
+train[,day:=as.integer(format(Date, "%d"))]
 train[,month:=as.integer(format(Date, "%m"))]
 train[,year:=as.integer(format(Date, "%y"))]
 train[,Store:=as.factor(as.numeric(Store))]
 
+test[,day:=as.integer(format(Date, "%d"))]
 test[,month:=as.integer(format(Date, "%m"))]
 test[,year:=as.integer(format(Date, "%y"))]
 test[,Store:=as.factor(as.numeric(Store))]
+
+
+# Mark refurbished stores
+RefurbishedStores <- as.numeric(subset(data.frame(table(train$Store)), Freq<900)$Var1)
+#cat("Number of refurbished stores:")
+#length(RefurbishedStores)
+
+store$RefurbishedStore <- as.numeric(store$Store %in% RefurbishedStores)
+train$PostRefurb <- ifelse(train$Store %in% RefurbishedStores & train$Date > as.Date("2014-12-31"),1,0)
+test$PostRefurb <- ifelse(test$Store %in% RefurbishedStores & test$Date > as.Date("2014-12-31"),1,0)
+
+# impute Competition Values 
+store$CompetitionOpenSinceYear[is.na(store$CompetitionOpenSinceYear)] <- 1990 # Dealing with NA and outlayers
+store$CompetitionOpenSinceMonth[is.na(store$CompetitionOpenSinceMonth)] <- 1 # Dealing with NA
+store$CompetitionDistance[is.na(store$CompetitionDistance)] <- 75000 # Dealing with NA
+
+store$CompetitionStrength <- cut(store$CompetitionDistance, breaks=c(0, 1500, 6000, 12000, 20000, Inf), labels=FALSE) # 15 min, 1/2/3 hours (or walking and 10/20/30 min driving)
+
+store$Promo2SinceDate <- as.Date(paste(store$Promo2SinceYear, store$Promo2SinceWeek, 1, sep=" "), format = "%Y %U %u")
+store$CompetitionOpenSinceDate <- as.Date(paste(store$CompetitionOpenSinceYear, store$CompetitionOpenSinceMonth, 1, sep=" "), format = "%Y %m %d")
+
+store$SundayStore <- as.numeric(store$Store %in% unique(train$Store[train$DayOfWeek==7 & train$Open==1])) #is this a Sunday-store
+
+store[,StoreType:=as.factor(StoreType)]
+store[,Assortment:=as.factor(Assortment)]
 
 ## log transformation to not be as sensitive to high sales
 ## decent rule of thumb: 
@@ -98,20 +126,21 @@ for(z in unique(test$Store)){
   StoreCheck$logSales<-log1p(StoreCheck$Sales)
   
   sc_ts <- ts(StoreCheck$logSales[1:(nrow(StoreCheck)-0)],frequency=6)
-  fit <- auto.arima(sc_ts)
-  #plot(forecast.Arima(fit,h=42,level=c(0,1)))
-  f <-forecast.Arima(fit,h=42,level=c(0,1))
+  fit <- nnetar(sc_ts)
+  #plot(forecast(fit,h=42,level=c(0,1)))
+  f <-forecast.nnetar(fit,h=42,level=c(0,1))
   
   Test.Forecast <- as.data.frame(test[which(test$Store==z&test$DayOfWeek<7),])
+  Test.Forecast <- Test.Forecast[order(Test.Forecast$Date),]
   Test.Forecast <- Test.Forecast[, !names(Test.Forecast) %in% c('Sales','logSales')]
 
   
-  Test.Forecast$ArimaForecast <- as.numeric(f$mean)
-  Test.Forecast$Id <-0
+  Test.Forecast$ArimaForecast <- as.numeric(f$mean[1:41])
   Store.Test.Forecast <-rbind(Store.Test.Forecast,Test.Forecast)
 } 
 
 #write.csv(Store.Forecast,file="Store.Forecast.csv")
+write.csv(Store.Test.Forecast,file="Store.Test.Forecast.csv")
 #Store.Forecast <- read.csv("Store.Forecast.csv")
 #Store.Forecast$Date<-as.Date(Store.Forecast$Date)
 #write.csv(Store.Test.Forecast,file="Store.Test.Forecast.csv")

@@ -29,38 +29,127 @@ library(data.table)
 library(h2o)
 library(forecast)
 
-source("../common/loadclean.R")
-
-Store.Forecast <- read.csv("Store.Forecast.csv",stringsAsFactors = FALSE)
-Store.Test.Forecast <- read.csv("Store.Test.Forecast.csv",stringsAsFactors = FALSE)
-
-## more care should be taken to ensure the dates of test can be projected from train
-## decision trees do not project well, so you will want to have some strategy here, if using the dates
-train$Date=as.Date(train$Date)
-test$Date=as.Date(test$Date)
-
-Store.Forecast$Date=as.Date(Store.Forecast$Date)
-Store.Test.Forecast$Date=as.Date(Store.Test.Forecast$Date)
+cat("reading the train and test data (with data.table) \n")
+train <- read.csv("../train.csv", stringsAsFactors = T)
+test <- read.csv("../test.csv", stringsAsFactors = T)
+store <- read.csv("../store.csv", stringsAsFactors = T)
 
 train <- as.data.table(train)
 test <- as.data.table(test)
+store <- as.data.table(store)
+
+## more care should be taken to ensure the dates of test can be projected from train
+## decision trees do not project well, so you will want to have some strategy here, if using the dates
+train[,Date:=as.Date(Date)]
+test[,Date:=as.Date(Date)]
 
 # seperating out the elements of the date column for the train set
 train[,month:=as.integer(format(Date, "%m"))]
 train[,year:=as.integer(format(Date, "%y"))]
-train[,Store:=as.factor(as.numeric(Store))]
+train[,year:=as.integer(format(Date, "%d"))]
 
 test[,month:=as.integer(format(Date, "%m"))]
 test[,year:=as.integer(format(Date, "%y"))]
+test[,year:=as.integer(format(Date, "%d"))]
+
+
+# clean store before merge (for efficiency, don't want to propagate missing vals)
+# just convert missing values (NA) to zeros for now
+store[is.na(store)] <- 0
+
+test$Open[is.na(test$Open)] <- 1
+
+# Mark refurbished stores
+RefurbishedStores <- as.numeric(subset(data.frame(table(train$Store)), Freq<900)$Var1)
+#cat("Number of refurbished stores:")
+#length(RefurbishedStores)
+
+store$RefurbishedStore <- as.numeric(store$Store %in% RefurbishedStores)
+train$PostRefurb <- ifelse(train$Store %in% RefurbishedStores & train$Date > as.Date("2014-12-31"),1,0)
+test$PostRefurb <- ifelse(test$Store %in% RefurbishedStores & test$Date > as.Date("2014-12-31"),1,0)
+
+# impute Competition Values 
+store$CompetitionOpenSinceYear[is.na(store$CompetitionOpenSinceYear)] <- 1990 # Dealing with NA and outlayers
+store$CompetitionOpenSinceMonth[is.na(store$CompetitionOpenSinceMonth)] <- 1 # Dealing with NA
+store$CompetitionDistance[is.na(store$CompetitionDistance)] <- 75000 # Dealing with NA
+
+store$CompetitionStrength <- cut(store$CompetitionDistance, breaks=c(0, 1500, 6000, 12000, 20000, Inf), labels=FALSE) # 15 min, 1/2/3 hours (or walking and 10/20/30 min driving)
+
+store$Promo2SinceDate <- as.Date(paste(store$Promo2SinceYear, store$Promo2SinceWeek, 1, sep=" "), format = "%Y %U %u")
+store$CompetitionOpenSinceDate <- as.Date(paste(store$CompetitionOpenSinceYear, store$CompetitionOpenSinceMonth, 1, sep=" "), format = "%Y %m %d")
+
+store$SundayStore <- as.numeric(store$Store %in% unique(train$Store[train$DayOfWeek==7 & train$Open==1])) #is this a Sunday-store
+
+store[,StoreType:=as.factor(StoreType)]
+store[,Assortment:=as.factor(Assortment)]
+
+#cat("store data column names and details\n")
+#summary(store)
+
+# merge in store information
+train <- merge(train,store,by="Store")
+test <- merge(test,store,by="Store")
+
+#is.Promo.Month <- format(train$Date, "%b") %in% unlist(strsplit(as.character(train$PromoInterval), split=","))
+#train$Promo2Refresh <- as.numeric((train$Date > train$Promo2SinceDate) & is.Promo.Month)
+#train$Promo2Refresh[is.na(train$Promo2Refresh)] <- 0
+
+#is.Promo.Month <- format(test$Date, "%b") %in% unlist(strsplit(as.character(test$PromoInterval), split=","))
+#test$Promo2Refresh <- as.numeric((test$Date > test$Promo2SinceDate) & is.Promo.Month)
+#test$Promo2Refresh[is.na(test$Promo2Refresh)] <- 0
+
+#CompetitionEffect = 30
+#train$CompetitionEntrance <- 0
+#train$CompetitionEntrance <- as.numeric((train$Date > train$CompetitionOpenSinceDate) & (train$Date < train$CompetitionOpenSinceDate + CompetitionEffect))
+#train$CompetitionStrength <- ifelse(train$Date > train$CompetitionOpenSinceDate, train$CompetitionStrength, train$CompetitionStrength + 1)
+#train$CompetitionStrength <- as.factor(train$CompetitionStrength)
+
+#test$CompetitionEntrance <- 0
+#test$CompetitionEntrance <- as.numeric((test$Date > test$CompetitionOpenSinceDate) & (test$Date < test$CompetitionOpenSinceDate + CompetitionEffect))
+#test$CompetitionStrength <- ifelse(test$Date > test$CompetitionOpenSinceDate, test$CompetitionStrength, test$CompetitionStrength + 1)
+#test$CompetitionStrength <- as.factor(test$CompetitionStrength)
+
+#cat("train data column names and details\n")
+#summary(train)
+#cat("test data column names and details\n")
+#summary(test)
+
+train[,Store:=as.factor(as.numeric(Store))]
 test[,Store:=as.factor(as.numeric(Store))]
+
+train[,DayOfWeek:=as.factor(as.numeric(DayOfWeek))]
+test[,DayOfWeek:=as.factor(as.numeric(DayOfWeek))]
+
+train[,StateHoliday:=as.factor(StateHoliday)]
+test[,StateHoliday:=as.factor(StateHoliday)]
+
+train[,SchoolHoliday:=as.factor(as.numeric(SchoolHoliday))]
+test[,SchoolHoliday:=as.factor(as.numeric(SchoolHoliday))]
+
+train <- train[Sales > 0,]  ## We are not judged on 0 sales records in test set
+## See Scripts discussion from 10/8 for more explanation.
+
+# impute 11 days open for one store in the test dataset
+test$Open[is.na(test$Open)] <- 1
 
 ## log transformation to not be as sensitive to high sales
 ## decent rule of thumb: 
 ##     if the data spans an order of magnitude, consider a log transform
 train[,logSales:=log1p(Sales)]
 
+Store.Forecast <- read.csv("Store.Forecast.csv",stringsAsFactors = F)
+Store.Test.Forecast <- read.csv("Store.Test.Forecast.csv",stringsAsFactors = F)
+
 Store.Forecast <- Store.Forecast[,c('Store','Date','ArimaForecast')]
 Store.Test.Forecast <- Store.Test.Forecast[,c('Store','Date','ArimaForecast')]
+
+Store.Forecast <- as.data.table(Store.Forecast)
+Store.Test.Forecast <- as.data.table(Store.Test.Forecast)
+
+## more care should be taken to ensure the dates of test can be projected from train
+## decision trees do not project well, so you will want to have some strategy here, if using the dates
+Store.Forecast[,Date:=as.Date(Date)]
+Store.Test.Forecast[,Date:=as.Date(Date)]
 
 train <- merge(train,Store.Forecast,by=c('Store','Date'),all.x=TRUE)
 train$ArimaForecast[which(is.na(train$ArimaForecast))] <- -99
@@ -69,7 +158,7 @@ test <- merge(test,Store.Test.Forecast,by=c('Store','Date'),all.x=TRUE)
 test$ArimaForecast[which(is.na(train$ArimaForecast))] <- -99
 
 # select the columns for prediction
-predictors <- names(train)[c(1, 2, 6, 7, 9:21,23)]
+predictors <- names(train)[c(1, 2, 6, 7, 9:26,28)]
 
 # prod character predictors (all of them are categorical) to numeric ids
 for (p in predictors) {
@@ -90,7 +179,8 @@ h2o.init(nthreads=-1,max_mem_size='6G')
 ## Load data into cluster from R
 trainHex<-as.h2o(train)
 ## Set up variable to use all features other than those specified here
-features<-colnames(train)[!(colnames(train) %in% c("Id","Date","Sales","logSales","Customers"))]
+#features<-colnames(train)[!(colnames(train) %in% c("Id","Date","Sales","logSales","Customers"))]
+features<-predictors
 ## Train a random forest using all default parameters
 rfHex <- h2o.randomForest(x=features,
                           y="logSales", 
@@ -114,27 +204,6 @@ summary(pred)
 submission <- data.frame(Id=test$Id, Sales=pred)
 
 cat("saving the submission file\n")
-write.csv(submission, "h2o_rf.csv",row.names=F)
+write.csv(submission, paste("h2o_rf_BigHand_",format(Sys.Date(),"%Y%m%d"),format(Sys.time(),"%H%m"),".csv",sep=""),row.names=F)
 
 #  - - JUNKYARD
-
-
-
-StoreCheck <- train[which(train$Store==857&train$DayOfWeek<7),]
-StoreCheck <- StoreCheck[order(StoreCheck$Date),]
-
-mean(StoreCheck$Sales)
-
-View(StoreCheck[which(StoreCheck$Sales==0),])
-
-StoreCheck$NewSales <- StoreCheck$Sales
-StoreCheck$NewSales[which(StoreCheck$Sales==0)] <- mean(StoreCheck$Sales)
-
-hist(StoreCheck$Sales)
-
-StartYear <- as.numeric(format(as.Date(StoreCheck$Date[1]), "%Y")) 
-EndYear <- as.numeric(format(tail(as.Date(StoreCheck$Date),1), "%Y")) 
-
-StartWeek <- as.numeric(format(as.Date(StoreCheck$Date[1]), "%W")) 
-EndWeek <- as.numeric(format(tail(as.Date(StoreCheck$Date),1), "%W")) 
-
