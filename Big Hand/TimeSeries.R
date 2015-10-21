@@ -32,12 +32,6 @@ library(forecast)
 source("../common/loadclean.R")
 
 
-
-cat("reading the train and test data (with data.table) \n")
-train <- fread("../train.csv",stringsAsFactors = T)
-test  <- fread("../test.csv",stringsAsFactors = T)
-store <- fread("../store.csv",stringsAsFactors = T)
-
 train <- merge(train,store,by="Store")
 test <- merge(test,store,by="Store")
 
