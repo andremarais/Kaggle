@@ -140,9 +140,9 @@ col2remove <- c("Id", "Date", "Sales","Customers",
                 "StateHoliday", # pretty useless
                 "CompetitionStrength", #useless
                 "SundayStore", # useless
-                "RefurbishedStore", # useless
+                "RefurbishedStore" # useless
                 #"PostRefurb", an OK feature
-                "Promo2Refresh"#, #useless
+                #"Promo2Refresh"#, #useless
                 #"CompetitionEntrance" #useless
 )
 
@@ -164,16 +164,34 @@ feature.names
 cat("cut the features\n")
 tra<-train[,feature.names]
 
+
+slice(dtrain,(1:3))
+t<-c(1,2,3,4)
+
+testf(10)
+
+testf <- function(z) {
+  print(z)
+  print(t)
+}
+
+month.seq<- (as.numeric(tra$year)-2013+2000)*12+as.numeric(tra$month)
+a <-0.00200636
+b<-0.02129326
+c<-0.6665564
+tra.weight <- a*(month.seq^2)+(b*month.seq)+c
+
 RMPSE<- function(preds, dtrain) {
   labels <- getinfo(dtrain, "label")
   elab<-exp(as.numeric(labels))-1
   epreds<-exp(as.numeric(preds))-1
-  err <- sqrt(mean((epreds/elab-1)^2))
-  yearmonth <- (as.numeric(getinfo(dtrain, "year"))*100)+as.numeric(getinfo(dtrain, "month"))
+  err <- sqrt(mean((epreds/elab-1)^2*tra.weight))
   return(list(metric = "RMPSE", value = err))
 }
+
+
 nrow(train)
-#set.seed(777)
+set.seed(1177)
 h<-sample(nrow(train),50000)
 
 dval<-xgb.DMatrix(data=data.matrix(tra[h,]),label=log(train$Sales+1)[h])
@@ -182,7 +200,7 @@ watchlist<-list(val=dval,train=dtrain)
 param <- list(  objective           = "reg:linear", 
                 booster = "gbtree",
                 eta                 = 0.25, # 0.06, #0.01,
-                max_depth           = 8, #changed from default of 8
+                max_depth           = 20, #changed from default of 8
                 subsample           = 0.7, # 0.7
                 colsample_bytree    = 0.7 # 0.7
                 

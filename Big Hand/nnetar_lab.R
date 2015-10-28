@@ -1,6 +1,7 @@
 library(forecast)
 library(data.table)
 library(mice)
+library(astsa)
 
 
 
@@ -52,8 +53,25 @@ ts_train[,logSales:=log1p(Sales+1)]
 
 ts_train$check <- c(1:6)
 
-sc_ts <- ts(ts_train$logSales,frequency=freq)
+sc_ts <- ts(ts_train$Sales,frequency=freq)
+
+sc_ts <- ts(diff(diff(sc_ts,lag=1),lag=6),frequency = 1)
+
 
 fit <- nnetar(sc_ts)
-fcast <- forecast(fit,h=100)
+fcast <- forecast(fit,h=42)
 plot(fcast)
+
+diffinv(fcast$mean)
+
+
+s <- 1:10
+d <- diff(s,lag=2)
+diffinv(d, xi = c(1,2),lag=2)
+
+
+y <- ts(x, frequency=7)
+z <- fourier(ts(x, frequency=365.25), K=5)
+zf <- fourierf(ts(x, frequency=365.25), K=5, h=100)
+fit <- auto.arima(y, xreg=cbind(z,holiday), seasonal=FALSE)
+fc <- forecast(fit, xreg=cbind(zf,holidayf), h=100)
