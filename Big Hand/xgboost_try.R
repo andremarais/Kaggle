@@ -1,5 +1,5 @@
 library(xgboost)
-library('ProgGUIinR')
+library(ProgGUIinR)
 
 
 #my favorite seed^^
@@ -141,9 +141,9 @@ col2remove <- c("Id", "Date", "Sales","Customers",
                 "CompetitionStrength", #useless
                 "SundayStore", # useless
                 "RefurbishedStore", # useless
-                #"PostRefurb", an OK feature
-                "Promo2Refresh"#, #useless
-                #"CompetitionEntrance" #useless
+                "PostRefurb", # an OK feature
+                "Promo2Refresh", #useless
+                "CompetitionEntrance" #useless
 )
 
 feature.names <- colnames(train)[!(colnames(train) %in% col2remove)]
@@ -162,7 +162,7 @@ feature.names
 #}
 
 cat("cut the features\n")
-tra<-train[,feature.names]
+train<-train[,feature.names]
 
 RMPSE<- function(preds, dtrain) {
   labels <- getinfo(dtrain, "label")
@@ -173,7 +173,7 @@ RMPSE<- function(preds, dtrain) {
   return(list(metric = "RMPSE", value = err))
 }
 nrow(train)
-#set.seed(777)
+set.seed(717)
 h<-sample(nrow(train),50000)
 
 dval<-xgb.DMatrix(data=data.matrix(tra[h,]),label=log(train$Sales+1)[h])
@@ -181,10 +181,10 @@ dtrain<-xgb.DMatrix(data=data.matrix(tra[-h,]),label=log(train$Sales+1)[-h])
 watchlist<-list(val=dval,train=dtrain)
 param <- list(  objective           = "reg:linear", 
                 booster = "gbtree",
-                eta                 = 0.25, # 0.06, #0.01,
-                max_depth           = 8, #changed from default of 8
-                subsample           = 0.7, # 0.7
-                colsample_bytree    = 0.7 # 0.7
+                eta                 = 0.05, # 0.06, #0.01,
+                max_depth           = 100, #changed from default of 8
+                subsample           = 0.4, # 0.7
+                colsample_bytree    = 0.4 # 0.7
                 
                 # alpha = 0.0001, 
                 # lambda = 1
@@ -203,5 +203,5 @@ pred1 <- exp(predict(clf, data.matrix(test[,feature.names])))-1
 library(readr)
 submission <- data.frame(Id=test$Id, Sales=pred1)
 cat("saving the submission file\n")
-write_csv(submission, "rf1.csv")
+write_csv(submission, paste("rf1_",format(Sys.time(),"%Y%m%d_%H%M"),".csv",sep=""))
 
