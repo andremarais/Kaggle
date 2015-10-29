@@ -97,6 +97,8 @@ test$StateHoliday <- as.factor(test$StateHoliday)
 #train$SchoolHoliday <- as.factor(as.numeric(train$SchoolHoliday))
 #test$SchoolHoliday <- as.factor(as.numeric(test$SchoolHoliday))
 
+test$Open[is.na(test$Open)] <- 0
+
 cat("limit train to sales >0 and create logtransform\n")
 train <- train[train$Sales > 0,]  ## We are not judged on 0 sales records in test set
 ## See Scripts discussion from 10/8 for more explanation.
@@ -165,16 +167,6 @@ cat("cut the features\n")
 tra<-train[,feature.names]
 
 
-slice(dtrain,(1:3))
-t<-c(1,2,3,4)
-
-testf(10)
-
-testf <- function(z) {
-  print(z)
-  print(t)
-}
-
 month.seq<- (as.numeric(tra$year)-2013+2000)*12+as.numeric(tra$month)
 a <-0.00200636
 b<-0.02129326
@@ -199,10 +191,10 @@ dtrain<-xgb.DMatrix(data=data.matrix(tra[-h,]),label=log(train$Sales+1)[-h])
 watchlist<-list(val=dval,train=dtrain)
 param <- list(  objective           = "reg:linear", 
                 booster = "gbtree",
-                eta                 = 0.25, # 0.06, #0.01,
-                max_depth           = 20, #changed from default of 8
-                subsample           = 0.7, # 0.7
-                colsample_bytree    = 0.7 # 0.7
+                eta                 = 0.08, # 0.06, #0.01,
+                max_depth           = 30, #changed from default of 8
+                subsample           = 0.65, # 0.7
+                colsample_bytree    = 0.75 # 0.7
                 
                 # alpha = 0.0001, 
                 # lambda = 1
@@ -221,5 +213,5 @@ pred1 <- exp(predict(clf, data.matrix(test[,feature.names])))-1
 library(readr)
 submission <- data.frame(Id=test$Id, Sales=pred1)
 cat("saving the submission file\n")
-write_csv(submission, "rf1.csv")
+write_csv(submission, paste("rf1_",format(Sys.time(),"%Y%m%d_%H%M"),".csv",sep=""))
 
